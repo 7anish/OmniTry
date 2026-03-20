@@ -1,4 +1,4 @@
-FROM runpod/base:0.6.2-cuda12.1.0
+FROM runpod/pytorch:2.2.0-py3.10-cuda12.1.1-devel-ubuntu22.04
 
 RUN apt-get update && apt-get install -y git wget && rm -rf /var/lib/apt/lists/*
 

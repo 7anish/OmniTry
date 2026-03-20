@@ -24,15 +24,21 @@ def download_models():
     flux_path = "checkpoints/FLUX.1-Fill-dev"
     lora_path = "checkpoints/omnitry_lora"
 
+    hf_token = os.environ.get("HF_TOKEN")
+    if not hf_token:
+        raise ValueError("HF_TOKEN environment variable is not set! Please add it in RunPod endpoint settings.")
+    print(f"HF_TOKEN found: {hf_token[:8]}...")
+
     # Check if FLUX model is fully downloaded
     if not os.path.exists(f"{flux_path}/model_index.json"):
         print("FLUX model missing or incomplete, downloading...")
         if os.path.exists(flux_path):
             shutil.rmtree(flux_path)
+        os.makedirs(flux_path, exist_ok=True)
         snapshot_download(
             'black-forest-labs/FLUX.1-Fill-dev',
             local_dir=flux_path,
-            token=os.environ.get("HF_TOKEN")
+            token=hf_token
         )
         print("FLUX model downloaded!")
     else:
@@ -43,6 +49,7 @@ def download_models():
         print("LoRA missing or incomplete, downloading...")
         if os.path.exists(lora_path):
             shutil.rmtree(lora_path)
+        os.makedirs(lora_path, exist_ok=True)
         snapshot_download(
             'Kunbyte/OmniTry',
             local_dir=lora_path
@@ -94,7 +101,7 @@ def handler(job):
         guidance_scale = float(job_input.get("guidance_scale", 30.0))
         seed = job_input.get("seed", 42)
 
-        print(f"Running inference with steps={num_steps}, guidance={guidance_scale}, seed={seed}")
+        print(f"Running inference: steps={num_steps}, guidance={guidance_scale}, seed={seed}")
 
         generator = torch.Generator("cuda").manual_seed(seed)
 

@@ -1,7 +1,7 @@
 import runpod, base64, io
 from PIL import Image
 
-runpod.api_key = "ccccccccccccccc"
+runpod.api_key = "............"
 
 def img_to_b64(path):
     with open(path, "rb") as f:

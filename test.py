@@ -7,7 +7,7 @@ def img_to_b64(path):
     with open(path, "rb") as f:
         return base64.b64encode(f.read()).decode()
 
-endpoint = runpod.Endpoint("62c6tnqko9x1u5")
+endpoint = runpod.Endpoint("tmc7ejedecwx9f")
 
 result = endpoint.run_sync({
     "input": {

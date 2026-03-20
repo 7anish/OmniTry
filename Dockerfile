@@ -7,7 +7,6 @@ RUN git clone --recurse-submodules https://github.com/Kunbyte-AI/OmniTry.git .
 
 RUN pip install --no-cache-dir -r requirements.txt
 RUN pip install --no-cache-dir runpod huggingface_hub
-RUN pip install flash-attn==2.6.3 --no-build-isolation
 
 COPY handler.py .
 

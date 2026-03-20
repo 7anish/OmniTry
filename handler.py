@@ -20,24 +20,30 @@ except Exception as e:
 
 pipe = None
 
-def download_models():
-    flux_path = "checkpoints/FLUX.1-Fill-dev"
-    lora_path = "checkpoints/omnitry_lora"
+# Use network volume if available, otherwise fall back to local
+VOLUME_PATH = os.environ.get("MODEL_DIR", "/runpod-volume/checkpoints")
+FLUX_PATH = f"{VOLUME_PATH}/FLUX.1-Fill-dev"
+LORA_PATH = f"{VOLUME_PATH}/omnitry_lora"
 
+
+def download_models():
     hf_token = os.environ.get("HF_TOKEN")
     if not hf_token:
         raise ValueError("HF_TOKEN environment variable is not set! Please add it in RunPod endpoint settings.")
     print(f"HF_TOKEN found: {hf_token[:8]}...")
 
+    os.makedirs(FLUX_PATH, exist_ok=True)
+    os.makedirs(LORA_PATH, exist_ok=True)
+
     # Check if FLUX model is fully downloaded
-    if not os.path.exists(f"{flux_path}/model_index.json"):
+    if not os.path.exists(f"{FLUX_PATH}/model_index.json"):
         print("FLUX model missing or incomplete, downloading...")
-        if os.path.exists(flux_path):
-            shutil.rmtree(flux_path)
-        os.makedirs(flux_path, exist_ok=True)
+        if os.path.exists(FLUX_PATH):
+            shutil.rmtree(FLUX_PATH)
+        os.makedirs(FLUX_PATH, exist_ok=True)
         snapshot_download(
             'black-forest-labs/FLUX.1-Fill-dev',
-            local_dir=flux_path,
+            local_dir=FLUX_PATH,
             token=hf_token
         )
         print("FLUX model downloaded!")
@@ -45,14 +51,14 @@ def download_models():
         print("FLUX model already exists, skipping download.")
 
     # Check if LoRA is fully downloaded
-    if not os.path.exists(f"{lora_path}/omnitry_v1_unified.safetensors"):
+    if not os.path.exists(f"{LORA_PATH}/omnitry_v1_unified.safetensors"):
         print("LoRA missing or incomplete, downloading...")
-        if os.path.exists(lora_path):
-            shutil.rmtree(lora_path)
-        os.makedirs(lora_path, exist_ok=True)
+        if os.path.exists(LORA_PATH):
+            shutil.rmtree(LORA_PATH)
+        os.makedirs(LORA_PATH, exist_ok=True)
         snapshot_download(
             'Kunbyte/OmniTry',
-            local_dir=lora_path
+            local_dir=LORA_PATH
         )
         print("LoRA downloaded!")
     else:
@@ -66,10 +72,10 @@ def load_model():
     download_models()
     print("Loading model into GPU...")
     pipe = FluxFillPipeline.from_pretrained(
-        "checkpoints/FLUX.1-Fill-dev",
+        FLUX_PATH,
         torch_dtype=torch.bfloat16,
     ).to("cuda")
-    pipe.load_lora_weights("checkpoints/omnitry_lora/omnitry_v1_unified.safetensors")
+    pipe.load_lora_weights(f"{LORA_PATH}/omnitry_v1_unified.safetensors")
     print("Model loaded successfully!")
 
 
@@ -88,7 +94,6 @@ def handler(job):
         load_model()
         job_input = job["input"]
 
-        # Validate required inputs
         if "person_image" not in job_input:
             return {"error": "person_image is required", "status": "failed"}
         if "garment_image" not in job_input:

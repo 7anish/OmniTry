@@ -1,0 +1,26 @@
+    # Git
+.git
+.gitmodules
+.gitignore
+
+# GitHub Actions
+.github
+
+# Python cache
+__pycache__/
+*.pyc
+*.pyo
+*.pyd
+
+# Virtual environments
+.venv
+env/
+venv/
+
+# Checkpoints (in case you ever have them locally)
+checkpoints/
+
+# Misc
+*.md
+*.txt
+.DS_Store

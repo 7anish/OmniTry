@@ -30,6 +30,7 @@ jobs:
         with:
           context: .
           push: true
-          tags: ${{ secrets.DOCKERHUB_USERNAME }}/omnitry-runpod:latest
-          build-args: |
-            HF_TOKEN=${{ secrets.HF_TOKEN }}
+          tags: ${{ secrets.DOCKER_USERNAME }}/omnitry-runpod:latest
+
+
+

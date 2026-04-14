@@ -6,8 +6,7 @@ WORKDIR /app
 RUN git clone --recurse-submodules https://github.com/Kunbyte-AI/OmniTry.git .
 
 RUN pip install --no-cache-dir -r requirements.txt
-RUN pip install --no-cache-dir runpod huggingface_hub
-# Pin AFTER everything else to prevent re-upgrade
+RUN pip install --no-cache-dir runpod huggingface_hub protobuf
 RUN pip install --no-cache-dir "numpy<2"
 
 COPY handler.py .

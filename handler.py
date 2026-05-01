@@ -148,14 +148,16 @@ def load_model():
     # VAE slicing: memory efficient without speed penalty
     pipe.vae.enable_slicing()
 
-    # Attention optimization — try xFormers, fallback to default
-    try:
-        pipe.enable_xformers_memory_efficient_attention()
-        print("✓ xFormers memory-efficient attention enabled")
-    except Exception as e:
-        print(f"⚠ xFormers not available: {e} — using default attention")
+    # ⚠️ xFormers is intentionally DISABLED
+    # OmniTry uses a custom FluxAttnProcessor2_0 that passes image_rotary_emb
+    # and lens kwargs through cross_attention_kwargs. xFormers replaces this
+    # processor with XFormersAttnProcessor which silently ignores those kwargs,
+    # causing a tensor shape mismatch (512 vs 4042) and crashing inference.
+    # PyTorch 2.2 scaled_dot_product_attention (SDPA) is used instead —
+    # it is nearly as fast and fully compatible with OmniTry's attention.
+    print("✓ Using PyTorch SDPA attention (xFormers disabled — incompatible with OmniTry)")
 
-    # ⚠️ NOTE: torch.compile is intentionally SKIPPED
+    # ⚠️ torch.compile is intentionally SKIPPED
     # The hacked dual-stream LoRA forward is a dynamic Python closure
     # torch.compile with fullgraph=True will crash on it.
     # Speedup from xFormers + TF32 + GPU-only pipeline is sufficient.
@@ -192,16 +194,22 @@ def load_model():
 
 
 def _warmup_model():
-    """1-step warmup to trigger CUDA kernel compilation and cudnn benchmarking"""
+    """
+    1-step warmup to prime CUDA kernels and cudnn benchmarking.
+    Must use stack([person, garment]) shape — same as real inference.
+    512 is too small for FLUX's positional embeddings; use 768x1024.
+    """
     try:
-        dummy_t = torch.zeros(1, 3, 512, 512, device=device, dtype=weight_dtype)
-        dummy_cond = torch.cat([dummy_t, dummy_t], dim=0)
+        H, W = 768, 1024
+        dummy_person  = torch.zeros(3, H, W, device=device, dtype=weight_dtype)
+        dummy_garment = torch.zeros(3, H, W, device=device, dtype=weight_dtype)
+        dummy_cond = torch.stack([dummy_person, dummy_garment])   # shape [2, 3, H, W]
         dummy_mask = torch.zeros_like(dummy_cond)
         with torch.no_grad():
             _ = pipe(
                 prompt=["warmup"] * 2,
-                height=512,
-                width=512,
+                height=H,
+                width=W,
                 img_cond=dummy_cond,
                 mask=dummy_mask,
                 num_inference_steps=1,

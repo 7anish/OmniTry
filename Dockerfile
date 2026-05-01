@@ -35,14 +35,14 @@ RUN pip install --no-cache-dir \
 # Install performance optimization libraries
 RUN pip install --no-cache-dir packaging wheel
 
-# Flash Attention 2 for 30-40% speedup
-RUN pip install --no-cache-dir flash-attn==2.6.3 --no-build-isolation || \
-    echo "⚠️ Flash Attention installation failed, will use xFormers fallback"
+# ⚠️ xFormers intentionally NOT installed
+# OmniTry uses custom FluxAttnProcessor2_0 with image_rotary_emb + lens kwargs.
+# xFormers replaces this processor and drops those kwargs → tensor shape crash (512 vs 4042).
+# PyTorch 2.2 built-in SDPA is used instead — compatible and nearly as fast.
 
-# xFormers as fallback for memory-efficient attention
-# ✅ FIX 3: Use xformers version matched to torch 2.2.0
-RUN pip install --no-cache-dir "xformers==0.0.24" || \
-    echo "⚠️ xFormers installation failed, will use default attention"
+# Flash Attention 2 — compatible with OmniTry's custom processor
+RUN pip install --no-cache-dir flash-attn==2.6.3 --no-build-isolation || \
+    echo "⚠️ Flash Attention not available, using PyTorch SDPA (still fast)" 
 
 # Verify torch + torchvision are compatible
 RUN python -c "\
